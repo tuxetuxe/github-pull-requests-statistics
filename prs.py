@@ -1,0 +1,69 @@
+import requests
+from datetime import datetime
+import numpy
+import sys
+
+
+owner = sys.argv[1]
+repo = sys.argv[2]
+user = sys.argv[3]
+password = sys.argv[4]
+pr_url = "https://api.github.com/repos/%s/%s/pulls?state=all&sort=created&per_page=100" % (owner, repo)
+user_auth = (user, password)
+stats = {};
+
+url = pr_url
+while url is not None:
+    sys.stdout.write(".")
+    sys.stdout.flush()
+
+    r = requests.get(url, auth=user_auth)
+    url = None
+
+    if "link" in r.headers:
+        link_header = r.headers["Link"]
+        link_header = link_header.split(",")
+        for lh in link_header:
+            clh = lh.rsplit(";")
+            if "next" in clh[1]:
+                url = clh[0]
+                url = url.strip()
+                url = url[1:len(url)-1]
+
+    data = r.json()
+
+    for pr in data:
+        created = pr["created_at"]
+        end = pr["merged_at"]
+        state = pr["state"]
+        user = pr["user"]["login"]
+
+        if state == "open":
+            end = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%SZ")
+        if state == "closed":
+            end = pr["closed_at"]
+
+        createDate = datetime.strptime(created, "%Y-%m-%dT%H:%M:%SZ")
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ")
+        duration = (endDate - createDate).seconds;
+
+        if user in stats:
+            stats[user].append(duration)
+        else:
+            stats[user] = [duration]
+print ""
+print "|------------------------|----------------|----------------|----------------|----------------|----------------|"
+print "|                   user |    average (h) |     median (h) |        max (h) |        min (h) |      PRs count |"
+print "|------------------------|----------------|----------------|----------------|----------------|----------------|"
+for user in stats:
+    pr_open_durations = stats[user]
+    pr_count = len(pr_open_durations)
+    average_duration_seconds = sum(pr_open_durations) / pr_count
+    average_duration = average_duration_seconds / 60.0 / 60.0
+
+    max_duration = max(pr_open_durations) / 60.0 / 60.0
+    min_duration = min(pr_open_durations) / 60.0 / 60.0
+    median_duration = numpy.median(numpy.array(pr_open_durations)) / 60.0 / 60.0
+
+    print "| %22s | %14.4f | %14.4f | %14.4f | %14.4f | %14d |" %(user, average_duration, median_duration, max_duration, min_duration, pr_count)
+print "|------------------------|----------------|----------------|----------------|----------------|----------------|"

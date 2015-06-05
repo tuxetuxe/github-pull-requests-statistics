@@ -11,5 +11,5 @@ pip install numpy
 
 # usage
 ```
-python prs.py <owner> <repository> <username> <password or OAUTH token>
+python pr-stats.py <owner> <repository> <username> <password or OAUTH token>
 ```

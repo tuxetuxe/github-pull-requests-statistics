@@ -45,7 +45,7 @@ while url is not None:
 
         createDate = datetime.strptime(created, "%Y-%m-%dT%H:%M:%SZ")
         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%SZ")
-        duration = (endDate - createDate).seconds;
+        duration = (endDate - createDate).days*3600*24 + (endDate - createDate).seconds;
 
         if user in stats:
             stats[user].append(duration)
